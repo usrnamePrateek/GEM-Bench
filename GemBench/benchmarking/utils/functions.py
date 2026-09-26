@@ -111,8 +111,8 @@ from .embedding import Embedding
 class SentenceEmbedding(Embedding):
     """Class to handle sentence embeddings"""
     def __init__(self, raw_results: List[str],
-                 model_name: str = 'text-embedding-3-small'
-                 # model_name: str = "Sentence-Transformers/all-MiniLM-L6-v2"
+                 # model_name: str = 'text-embedding-3-small'
+                 model_name: str = "Sentence-Transformers/all-MiniLM-L6-v2"
                  ):
         super().__init__(model_name=model_name)
         self.raw_results = raw_results

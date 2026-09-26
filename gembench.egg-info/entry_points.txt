@@ -1,0 +1,2 @@
+[console_scripts]
+gembench = gembench_cli:main
