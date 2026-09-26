@@ -25,7 +25,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # ==================== MODEL CONFIG ====================
-    BASE_MODEL = "Qwen/Qwen3-32B"
+    BASE_MODEL = "google/gemma-3-27b-it"
     JUDGE_MODEL = "nvidia/Llama-3.3-70B-Instruct-FP8"
     OUTPUT_BASE = "/home/gpuuser7/gpuuser7_a/prateek/GEM-Bench/GemBench/benchmarking/output"
 
@@ -74,6 +74,13 @@ if __name__ == '__main__':
                         solution_name="BASIC_GEN_INSERT"
                     )
                 ,
+                "GI-P": 
+                    partial(
+                        advocate_workflow.run,
+                        query_type="QUERY_PROMPT",
+                        solution_name="BASIC_GEN_INSERT"
+                    )
+                ,
                 "GIR-R": 
                     partial(
                         advocate_workflow.run,
@@ -99,6 +106,13 @@ if __name__ == '__main__':
                 partial(
                     advocate_workflow.run,
                     query_type="QUERY_RESPONSE",
+                    solution_name="BASIC_GEN_INSERT"
+                )
+            ,
+            "GI-P": 
+                partial(
+                    advocate_workflow.run,
+                    query_type="QUERY_PROMPT",
                     solution_name="BASIC_GEN_INSERT"
                 )
             ,

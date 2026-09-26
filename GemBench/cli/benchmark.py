@@ -431,7 +431,7 @@ def build_baseline_callables(args, baselines: List[str]):
             solution_name="chi",
         )
 
-    adllm_baselines = [name for name in baselines if name in {"gi-r", "gir-r", "gir-p"}]
+    adllm_baselines = [name for name in baselines if name in {"gi-r", "gi-p", "gir-r", "gir-p"}]
     if adllm_baselines:
         score_func = LINEAR_WEIGHT if args.score_func == "linear" else LOG_WEIGHT
         adllm_workflow = AdLLMWorkflow(
@@ -450,6 +450,17 @@ def build_baseline_callables(args, baselines: List[str]):
         selectors["GI-R"] = partial(
             adllm_workflow.run,
             query_type="QUERY_RESPONSE",
+            solution_name="BASIC_GEN_INSERT",
+        )
+    if "gi-p" in baselines:
+        solutions["GI-P"] = partial(
+            adllm_workflow.run,
+            query_type="QUERY_PROMPT",
+            solution_name="BASIC_GEN_INSERT",
+        )
+        selectors["GI-P"] = partial(
+            adllm_workflow.run,
+            query_type="QUERY_PROMPT",
             solution_name="BASIC_GEN_INSERT",
         )
     if "gir-r" in baselines:

@@ -41,6 +41,13 @@ if __name__ == '__main__':
                         solution_name="BASIC_GEN_INSERT"
                     )
                 ,
+                "GI-P": 
+                    partial(
+                        advocate_workflow.run,
+                        query_type="QUERY_PROMPT",
+                        solution_name="BASIC_GEN_INSERT"
+                    )
+                ,
                 "GIR-R": 
                     partial(
                         advocate_workflow.run,
@@ -66,6 +73,13 @@ if __name__ == '__main__':
                 partial(
                     advocate_workflow.run,
                     query_type="QUERY_RESPONSE",
+                    solution_name="BASIC_GEN_INSERT"
+                )
+            ,
+            "GI-P": 
+                partial(
+                    advocate_workflow.run,
+                    query_type="QUERY_PROMPT",
                     solution_name="BASIC_GEN_INSERT"
                 )
             ,

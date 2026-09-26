@@ -29,6 +29,11 @@ METHODS = {
         "description": "Generate and inject with ad retrieval from the raw response.",
         "tasks": ["inject", "generate", "select"],
     },
+    "gi-p": {
+        "name": "GI-P",
+        "description": "Generate and inject with ad retrieval from the user prompt.",
+        "tasks": ["inject", "generate", "select"],
+    },
     "gir-r": {
         "name": "GIR-R",
         "description": "Generate, inject, and rewrite with retrieval from the raw response.",
@@ -53,6 +58,7 @@ METHOD_ALIASES = {
     "chi": "ad-chat",
     "gi-r": "gi-r",
     "gir": "gi-r",
+    "gi-p": "gi-p",
     "gir-r": "gir-r",
     "gir-p": "gir-p",
     "rag-adchat": "rag-adchat",
