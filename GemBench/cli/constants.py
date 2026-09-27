@@ -84,6 +84,7 @@ QUAL_MATRICES = [
     "trust_evaluation",
     "notice_products_evaluation",
     "click_products_evaluation",
+    "identifiability_evaluation",
 ]
 SELECT_MATRICES = ["product_selection_accuracy"]
 ALL_MATRICES = QUANT_MATRICES + QUAL_MATRICES + SELECT_MATRICES

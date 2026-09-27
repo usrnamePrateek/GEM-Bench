@@ -5,6 +5,7 @@ from .personality_agent import PersonalityAgent
 from .notice_products_agent import NoticeProductsAgent
 from .click_products_agent import ClickProductsAgent
 from .naturalness_agent import NaturalnessAgent
+from .identifiability_agent import IdentifiabilityAgent
 
 __all__ = [
     'BaseAgent',
@@ -14,4 +15,5 @@ __all__ = [
     'NoticeProductsAgent',
     'ClickProductsAgent',
     'NaturalnessAgent',
+    'IdentifiabilityAgent',
 ] 
