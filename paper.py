@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     # ==================== MODEL CONFIG ====================
     BASE_MODEL = "google/gemma-3-27b-it"
-    JUDGE_MODEL = "nvidia/Llama-3.3-70B-Instruct-FP8"
+    JUDGE_MODEL = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
     OUTPUT_BASE = "/home/gpuuser7/gpuuser7_a/prateek/GEM-Bench/GemBench/benchmarking/output"
 
     # Auto-generate tag and output dir based on mode
