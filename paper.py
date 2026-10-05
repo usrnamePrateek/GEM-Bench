@@ -22,11 +22,13 @@ if __name__ == '__main__':
                         help="'generate' for Stage 1, 'evaluate' for Stage 2+3, omit for full run")
     parser.add_argument("--results-path", type=str, default=None,
                         help="Path to results.json (required for evaluate mode)")
+    parser.add_argument("--identifiability-only", action="store_true",
+                        help="Only run the identifiability metric during evaluation")
     args = parser.parse_args()
 
     # ==================== MODEL CONFIG ====================
-    BASE_MODEL = "google/gemma-3-27b-it"
-    JUDGE_MODEL = "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+    BASE_MODEL = "Qwen/Qwen3-32B"
+    JUDGE_MODEL = "nvidia/Llama-3.3-70B-Instruct-FP8"
     OUTPUT_BASE = "/home/gpuuser7/gpuuser7_a/prateek/GEM-Bench/GemBench/benchmarking/output"
 
     # Auto-generate tag and output dir based on mode
@@ -162,8 +164,9 @@ if __name__ == '__main__':
         select_results = results.query_result_by_attr(filters={"dataSet": ["CA_Prod"]})
 
         print("Starting evaluation phase...")
+        evaluate_matrix = ["identifiability_evaluation"] if args.identifiability_only else None
         with timer.track("evaluation"):
-            adv_bench.evaluate(gen_results, select_results)
+            adv_bench.evaluate(gen_results, select_results, evaluate_matrix=evaluate_matrix)
         
         with timer.track("reporting"):
             adv_bench.report()
@@ -172,7 +175,8 @@ if __name__ == '__main__':
     else:
         # Default: original behavior — generate + evaluate + report all at once
         print("Running full pipeline (generate + evaluate + report)...")
+        evaluate_matrix = ["identifiability_evaluation"] if args.identifiability_only else None
         with timer.track("full_pipeline"):
-            adv_bench.run()
+            adv_bench.run(evaluate_matrix=evaluate_matrix)
             
     timer.summary()
