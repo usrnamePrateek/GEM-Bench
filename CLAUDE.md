@@ -6,6 +6,8 @@ The detailed workflow guide lives in `skills/gembench/SKILL.md` (CLI, pricing, a
 
 ## Layout
 
+End-to-end flow diagram (generate → evaluate → report, plus Ad-LLM internals): `docs/pipeline.html`. Update it when the pipeline changes.
+
 - `paper.py` — main experiment runner. `--mode generate|evaluate` (omit for full run), `--results-path` (evaluate mode), `--identifiability-only`. Model config (`BASE_MODEL`, `JUDGE_MODEL`, `OUTPUT_BASE`) is hardcoded at the top.
 - `paper_rebuttal.py` — RAG-AdChat-only run for the rebuttal.
 - `utils/__init__.py` — top-level `Timer` used by `paper.py` (not part of the `GemBench` package).

@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GEM-Bench Query Pipeline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: single reading column; the two figures break wider and scroll sideways on phones. */
+:root {
+  --bg: #f5f6f7; --fg: #1a1e23; --muted: #5b6470; --line: #c3c9d1; --surface: #ffffff; --band: #eceff2;
+  --llm: #a8690f; --llm-bg: #fbefd9;
+  --file: #3f6690; --file-bg: #e3ecf6;
+  --code-bg: #e8ebef;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14171b; --fg: #e3e6ea; --muted: #98a1ad; --line: #3e4651; --surface: #1c2026; --band: #191d22;
+  --llm: #e3a645; --llm-bg: #36290f; --file: #86aedb; --file-bg: #18273a; --code-bg: #232830; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #14171b; --fg: #e3e6ea; --muted: #98a1ad; --line: #3e4651; --surface: #1c2026; --band: #191d22;
+  --llm: #e3a645; --llm-bg: #36290f; --file: #86aedb; --file-bg: #18273a; --code-bg: #232830; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 15px/1.6 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 64px; }
+main { max-width: 1000px; margin: 0 auto; display: grid; gap: 28px; }
+.prose { max-width: 68ch; }
+h1 { font: 600 2.1rem/1.15 var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font: 600 1.35rem/1.2 var(--display); margin: 0 0 6px; text-wrap: balance; }
+p { margin: 0 0 10px; }
+.eyebrow { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+code { font: 13px var(--mono); background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+.sw.llm { background: var(--llm-bg); border-color: var(--llm); }
+.sw.loc { background: var(--surface); border-color: var(--line); }
+.sw.file { background: var(--file-bg); border-color: var(--file); }
+.sw.note { background: transparent; border: 1.5px dashed var(--muted); }
+
+figure { margin: 0; display: grid; gap: 12px; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.scroll svg { display: block; width: 100%; height: auto; min-width: 760px; color: var(--muted); }
+figcaption { font-size: 13.5px; color: var(--muted); max-width: 80ch; }
+
+svg .band { fill: var(--band); }
+svg .grp { fill: none; stroke: var(--line); stroke-dasharray: 2 3; }
+svg .n-loc rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg .n-llm rect { fill: var(--llm-bg); stroke: var(--llm); stroke-width: 1.5; }
+svg .n-file rect { fill: var(--file-bg); stroke: var(--file); stroke-width: 1.5; }
+svg .n-note rect { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; }
+svg .e { stroke: currentColor; stroke-width: 1.4; fill: none; }
+svg .e-dash { stroke: currentColor; stroke-width: 1.2; fill: none; stroke-dasharray: 4 4; }
+svg text { fill: var(--fg); font-family: var(--body); }
+svg .t { font-size: 13px; font-weight: 600; }
+svg .s { font-size: 11.5px; fill: var(--muted); }
+svg .m { font-size: 11px; font-family: var(--mono); }
+svg .lab { font-size: 11px; font-family: var(--mono); fill: var(--muted); }
+svg .hd { font: 600 13px var(--display); letter-spacing: .08em; }
+svg .hd tspan.fn { font: 400 11.5px var(--mono); fill: var(--muted); letter-spacing: 0; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px 9px 0; border-bottom: 1px solid var(--line); }
+th { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<main>
+  <header class="prose">
+    <div class="eyebrow">GemBench/benchmarking · paper.py</div>
+    <h1>GEM-Bench Query Pipeline</h1>
+    <p>How one benchmark query becomes an ad-injected response and then a row of scores. <code>GemBench.run()</code> runs three stages in order: <code>process_results()</code>, <code>evaluate()</code> and <code>report()</code>. Chat prompts and CA_Prod search queries follow parallel tracks and meet at <code>results.json</code>.</p>
+  </header>
+
+  <div class="legend" aria-label="Legend">
+    <span><i class="sw llm"></i>Calls an LLM (costs tokens)</span>
+    <span><i class="sw loc"></i>Local computation</span>
+    <span><i class="sw file"></i>File written to the output folder</span>
+    <span><i class="sw note"></i>Run-mode note</span>
+  </div>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 1000 1070" role="img" aria-label="Pipeline: dataset prompts go through Processor or SelectProcessor into the solution workflows, are filtered and embedded into results.json, scored by the quantitative, judge and selection evaluators into evaluation_result.json, and reported as four spreadsheets.">
+        <defs>
+          <marker id="ah1" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"/></marker>
+        </defs>
+
+        <!-- Stage bands -->
+        <rect class="band" x="0" y="0" width="1000" height="600" rx="6"/>
+        <rect class="band" x="0" y="608" width="1000" height="322" rx="6"/>
+        <rect class="band" x="0" y="938" width="1000" height="132" rx="6"/>
+        <text class="hd" x="24" y="26">STAGE 1 · GENERATE <tspan class="fn" dx="8">process_results()</tspan></text>
+        <text class="hd" x="24" y="632">STAGE 2 · EVALUATE <tspan class="fn" dx="8">evaluate(gen, select, evaluate_matrix)</tspan></text>
+        <text class="hd" x="24" y="962">STAGE 3 · REPORT <tspan class="fn" dx="8">report()</tspan></text>
+
+        <!-- Row A: datasets -->
+        <g class="n-loc"><rect x="60" y="44" width="400" height="56" rx="6"/>
+          <text class="t" x="260" y="67" text-anchor="middle">MT-Human · LM-Market</text>
+          <text class="s" x="260" y="86" text-anchor="middle">chat track: list of prompts</text></g>
+        <g class="n-loc"><rect x="540" y="44" width="400" height="56" rx="6"/>
+          <text class="t" x="740" y="67" text-anchor="middle">CA_Prod</text>
+          <text class="s" x="740" y="86" text-anchor="middle">search track: {query → candidate products}</text></g>
+        <line class="e" x1="260" y1="100" x2="260" y2="130" marker-end="url(#ah1)"/>
+        <line class="e" x1="740" y1="100" x2="740" y2="130" marker-end="url(#ah1)"/>
+
+        <!-- Row B: processors -->
+        <g class="n-loc"><rect x="60" y="130" width="400" height="64" rx="6"/>
+          <text class="t" x="260" y="155" text-anchor="middle">Processor</text>
+          <text class="s" x="260" y="175" text-anchor="middle">loops solution × dataset × repeat (n_repeats)</text></g>
+        <g class="n-loc"><rect x="540" y="130" width="400" height="64" rx="6"/>
+          <text class="t" x="740" y="155" text-anchor="middle">SelectProcessor</text>
+          <text class="s" x="740" y="175" text-anchor="middle">loops selector × repeat on CA_Prod</text></g>
+        <line class="e" x1="260" y1="194" x2="260" y2="236" marker-end="url(#ah1)"/>
+        <text class="lab" x="268" y="220">solution(problem_list=prompts)</text>
+        <line class="e" x1="740" y1="194" x2="740" y2="236" marker-end="url(#ah1)"/>
+        <text class="lab" x="748" y="220">selector(problem_list=dict)</text>
+
+        <!-- Row C: solution workflows -->
+        <rect class="grp" x="60" y="236" width="880" height="150" rx="8"/>
+        <text class="s" x="76" y="256">Solution workflows, wired up in paper.py</text>
+        <g class="n-llm"><rect x="76" y="268" width="270" height="104" rx="6"/>
+          <text class="t" x="211" y="292" text-anchor="middle">Ad-Chat</text>
+          <text class="s" x="211" y="314" text-anchor="middle">find_topic(prompt) → product</text>
+          <text class="s" x="211" y="332" text-anchor="middle">product put in the system prompt</text>
+          <text class="s" x="211" y="350" text-anchor="middle">LLM writes the answer with the ad</text></g>
+        <g class="n-llm"><rect x="362" y="268" width="300" height="104" rx="6"/>
+          <text class="t" x="512" y="292" text-anchor="middle">Ad-LLM · GI-R GI-P GIR-R GIR-P</text>
+          <text class="s" x="512" y="314" text-anchor="middle">LLM answer → retrieve top-5 ads</text>
+          <text class="s" x="512" y="332" text-anchor="middle">Injector picks product + gap</text>
+          <text class="s" x="512" y="350" text-anchor="middle">GIR-*: second LLM call rewrites</text></g>
+        <g class="n-llm"><rect x="678" y="268" width="246" height="104" rx="6"/>
+          <text class="t" x="801" y="292" text-anchor="middle">RAG-AdChat</text>
+          <text class="s" x="801" y="314" text-anchor="middle">retrieve top-k products</text>
+          <text class="s" x="801" y="332" text-anchor="middle">then Ad-Chat prompting</text>
+          <text class="s" x="801" y="350" text-anchor="middle">over that shortlist</text></g>
+        <line class="e" x1="270" y1="386" x2="270" y2="420" marker-end="url(#ah1)"/>
+        <text class="lab" x="278" y="407">{query, answer, product, price} per response</text>
+
+        <!-- Row D: filter + embed -->
+        <g class="n-loc"><rect x="60" y="420" width="420" height="72" rx="6"/>
+          <text class="t" x="270" y="444" text-anchor="middle">filter_result_for_comparison</text>
+          <text class="s" x="270" y="464" text-anchor="middle">failed answers → errors.json</text>
+          <text class="s" x="270" y="481" text-anchor="middle">keep a query only if every solution answered it</text></g>
+        <line class="e" x1="480" y1="456" x2="520" y2="456" marker-end="url(#ah1)"/>
+        <g class="n-loc"><rect x="520" y="420" width="420" height="72" rx="6"/>
+          <text class="t" x="730" y="444" text-anchor="middle">embedding_all_results</text>
+          <text class="s" x="730" y="464" text-anchor="middle">NLTK sentences, embeddings, adjacent similarity</text>
+          <text class="s" x="730" y="481" text-anchor="middle">ad_indices = sentences containing product name/url</text></g>
+        <line class="e" x1="730" y1="492" x2="730" y2="524" marker-end="url(#ah1)"/>
+
+        <!-- Row E: results.json + mode note -->
+        <g class="n-note"><rect x="60" y="524" width="500" height="60" rx="6"/>
+          <text class="m" x="76" y="549">--mode generate stops after writing results.json</text>
+          <text class="m" x="76" y="568">--mode evaluate starts here: load, split by dataSet</text></g>
+        <line class="e-dash" x1="560" y1="554" x2="610" y2="554"/>
+        <g class="n-file"><rect x="610" y="524" width="240" height="60" rx="6"/>
+          <text class="t" x="730" y="548" text-anchor="middle">results.json</text>
+          <text class="s" x="730" y="567" text-anchor="middle">gen_results + select_results</text></g>
+
+        <!-- Fan-out to evaluators -->
+        <line class="e" x1="730" y1="584" x2="730" y2="650"/>
+        <line class="e" x1="200" y1="650" x2="810" y2="650"/>
+        <line class="e" x1="200" y1="650" x2="200" y2="680" marker-end="url(#ah1)"/>
+        <line class="e" x1="510" y1="650" x2="510" y2="680" marker-end="url(#ah1)"/>
+        <line class="e" x1="810" y1="650" x2="810" y2="680" marker-end="url(#ah1)"/>
+        <text class="lab" x="208" y="670">gen + select</text>
+        <text class="lab" x="518" y="670">gen + select</text>
+        <text class="lab" x="818" y="670">select only</text>
+
+        <!-- Row F: evaluators -->
+        <g class="n-loc"><rect x="60" y="680" width="280" height="150" rx="6"/>
+          <text class="t" x="200" y="704" text-anchor="middle">QuantEvaluator</text>
+          <text class="s" x="200" y="724" text-anchor="middle">no LLM; reads the embeddings</text>
+          <text class="m" x="200" y="752" text-anchor="middle">has_ad · local_flow</text>
+          <text class="m" x="200" y="770" text-anchor="middle">global_coherence</text>
+          <text class="m" x="200" y="788" text-anchor="middle">ad_transition_similarity</text>
+          <text class="m" x="200" y="806" text-anchor="middle">ad_content_alignment</text>
+          <text class="m" x="200" y="822" text-anchor="middle">in/out_token · price</text></g>
+        <g class="n-llm"><rect x="360" y="680" width="300" height="150" rx="6"/>
+          <text class="t" x="510" y="704" text-anchor="middle">LAJQualitativeEvaluator</text>
+          <text class="s" x="510" y="724" text-anchor="middle">judge_model, one call per response per metric</text>
+          <text class="m" x="510" y="752" text-anchor="middle">accuracy · naturalness · trust</text>
+          <text class="m" x="510" y="770" text-anchor="middle">personality · notice · click</text>
+          <text class="m" x="510" y="788" text-anchor="middle">identifiability (v2 prompt)</text>
+          <text class="s" x="510" y="814" text-anchor="middle">parse [[CATEGORY]] → 0–100 score</text></g>
+        <g class="n-loc"><rect x="680" y="680" width="260" height="150" rx="6"/>
+          <text class="t" x="810" y="704" text-anchor="middle">SelectEvaluator</text>
+          <text class="s" x="810" y="724" text-anchor="middle">CA_Prod results only</text>
+          <text class="m" x="810" y="752" text-anchor="middle">product_selection_accuracy</text>
+          <text class="s" x="810" y="776" text-anchor="middle">100 if the chosen product is</text>
+          <text class="s" x="810" y="793" text-anchor="middle">labeled relevant to the query,</text>
+          <text class="s" x="810" y="810" text-anchor="middle">otherwise 0</text></g>
+
+        <!-- Merge -->
+        <polyline class="e" points="200,830 200,888 330,888" marker-end="url(#ah1)"/>
+        <line class="e" x1="510" y1="830" x2="510" y2="860" marker-end="url(#ah1)"/>
+        <polyline class="e" points="810,830 810,888 670,888" marker-end="url(#ah1)"/>
+        <g class="n-file"><rect x="330" y="860" width="340" height="56" rx="6"/>
+          <text class="t" x="500" y="883" text-anchor="middle">evaluation_result.json</text>
+          <text class="s" x="500" y="902" text-anchor="middle">one score per response × metric × repeat</text></g>
+
+        <!-- Stage 3 -->
+        <line class="e" x1="500" y1="916" x2="500" y2="980"/>
+        <line class="e" x1="162.5" y1="980" x2="837.5" y2="980"/>
+        <line class="e" x1="162.5" y1="980" x2="162.5" y2="996" marker-end="url(#ah1)"/>
+        <line class="e" x1="387.5" y1="980" x2="387.5" y2="996" marker-end="url(#ah1)"/>
+        <line class="e" x1="612.5" y1="980" x2="612.5" y2="996" marker-end="url(#ah1)"/>
+        <line class="e" x1="837.5" y1="980" x2="837.5" y2="996" marker-end="url(#ah1)"/>
+        <g class="n-file"><rect x="60" y="996" width="205" height="56" rx="6"/>
+          <text class="t" x="162.5" y="1019" text-anchor="middle">evaluation_result.xlsx</text>
+          <text class="s" x="162.5" y="1038" text-anchor="middle">every response</text></g>
+        <g class="n-file"><rect x="285" y="996" width="205" height="56" rx="6"/>
+          <text class="t" x="387.5" y="1019" text-anchor="middle">…_average.xlsx</text>
+          <text class="s" x="387.5" y="1038" text-anchor="middle">mean over repeats</text></g>
+        <g class="n-file"><rect x="510" y="996" width="205" height="56" rx="6"/>
+          <text class="t" x="612.5" y="1019" text-anchor="middle">…_with_product.xlsx</text>
+          <text class="s" x="612.5" y="1038" text-anchor="middle">only responses that carry an ad</text></g>
+        <g class="n-file"><rect x="735" y="996" width="205" height="56" rx="6"/>
+          <text class="t" x="837.5" y="1019" text-anchor="middle">…_with_product_avg</text>
+          <text class="s" x="837.5" y="1038" text-anchor="middle">both filters</text></g>
+      </svg>
+    </div>
+    <figcaption>The full path of a query through <code>GemBench.run()</code>. Both processors filter and embed their own results before they are merged into <code>results.json</code>. The judge and quantitative evaluators score chat and search responses alike; only <code>SelectEvaluator</code> is limited to CA_Prod. Each judge agent also writes its own <code>&lt;metric&gt;_evaluation.xlsx</code> with the raw judge text. The last spreadsheet's full name is <code>evaluation_result_with_product_average.xlsx</code>.</figcaption>
+  </figure>
+
+  <section class="prose">
+    <h2>Inside Ad-LLM</h2>
+    <p>The four Ad-LLM variants share one workflow. Two switches set in <code>paper.py</code> tell them apart: <code>query_type</code> decides what text is used to retrieve ads, and <code>solution_name</code> decides whether the injected answer is rewritten.</p>
+  </section>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 980 370" role="img" aria-label="Ad-LLM: the answer agent writes a plain answer; the prompt or the answer is embedded to retrieve five candidate ads; the injector scores every product and sentence gap and picks the least disruptive; GI variants splice the ad in as-is while GIR variants also have the LLM rewrite the result.">
+        <defs>
+          <marker id="ah2" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"/></marker>
+        </defs>
+        <!-- Row 1 -->
+        <g class="n-loc"><rect x="20" y="30" width="150" height="64" rx="6"/>
+          <text class="t" x="95" y="56" text-anchor="middle">User prompt</text>
+          <text class="s" x="95" y="75" text-anchor="middle">from the dataset</text></g>
+        <line class="e" x1="170" y1="62" x2="217" y2="62" marker-end="url(#ah2)"/>
+        <g class="n-llm"><rect x="217" y="30" width="150" height="64" rx="6"/>
+          <text class="t" x="292" y="56" text-anchor="middle">AnswerAgent</text>
+          <text class="s" x="292" y="75" text-anchor="middle">LLM: plain answer</text></g>
+        <line class="e" x1="367" y1="62" x2="414" y2="62" marker-end="url(#ah2)"/>
+        <g class="n-loc"><rect x="414" y="30" width="150" height="64" rx="6"/>
+          <text class="t" x="489" y="56" text-anchor="middle">Retrieval query</text>
+          <text class="m" x="489" y="75" text-anchor="middle">-P prompt · -R answer</text></g>
+        <line class="e" x1="564" y1="62" x2="611" y2="62" marker-end="url(#ah2)"/>
+        <text class="lab" x="587.5" y="55" text-anchor="middle">embed</text>
+        <g class="n-loc"><rect x="611" y="30" width="150" height="64" rx="6"/>
+          <text class="t" x="686" y="56" text-anchor="middle">productRAG</text>
+          <text class="s" x="686" y="75" text-anchor="middle">cosine top-5 ads</text></g>
+        <line class="e" x1="761" y1="62" x2="808" y2="62" marker-end="url(#ah2)"/>
+        <text class="lab" x="784.5" y="55" text-anchor="middle">top-5</text>
+        <g class="n-loc"><rect x="808" y="30" width="150" height="64" rx="6"/>
+          <text class="t" x="883" y="56" text-anchor="middle">Injector</text>
+          <text class="s" x="883" y="75" text-anchor="middle">least disruptive pair</text></g>
+
+        <!-- Row 2 -->
+        <polyline class="e" points="292,94 292,182 414,182" marker-end="url(#ah2)"/>
+        <text class="lab" x="300" y="172">answer</text>
+        <g class="n-loc"><rect x="414" y="150" width="150" height="64" rx="6"/>
+          <text class="t" x="489" y="176" text-anchor="middle">Sentence split</text>
+          <text class="s" x="489" y="195" text-anchor="middle">embed, flow per gap</text></g>
+        <polyline class="e" points="564,182 845,182 845,94" marker-end="url(#ah2)"/>
+        <text class="lab" x="700" y="175" text-anchor="middle">gaps + similarity</text>
+
+        <!-- Row 3 -->
+        <line class="e" x1="920" y1="94" x2="920" y2="270" marker-end="url(#ah2)"/>
+        <text class="lab" x="912" y="236" text-anchor="end">best product + gap</text>
+        <polyline class="e" points="920,250 686,250 686,270" marker-end="url(#ah2)"/>
+        <g class="n-loc"><rect x="611" y="270" width="150" height="64" rx="6"/>
+          <text class="t" x="686" y="296" text-anchor="middle">GI-P / GI-R</text>
+          <text class="s" x="686" y="315" text-anchor="middle">splice ad in as-is</text></g>
+        <g class="n-llm"><rect x="808" y="270" width="150" height="64" rx="6"/>
+          <text class="t" x="883" y="296" text-anchor="middle">GIR-P / GIR-R</text>
+          <text class="s" x="883" y="315" text-anchor="middle">splice, LLM rewrites</text></g>
+        <line class="e" x1="611" y1="302" x2="564" y2="302" marker-end="url(#ah2)"/>
+        <polyline class="e" points="883,334 883,354 489,354 489,334" marker-end="url(#ah2)"/>
+        <g class="n-file"><rect x="414" y="270" width="150" height="64" rx="6"/>
+          <text class="t" x="489" y="296" text-anchor="middle">Result</text>
+          <text class="s" x="489" y="315" text-anchor="middle">answer, product, price</text></g>
+      </svg>
+    </div>
+    <figcaption>GI-P and GI-R differ only in the retrieval query. The spliced text is <code>[name](url):description.</code> placed after the chosen sentence. For each candidate ad and each gap between adjacent sentences, <code>inject_flow</code> is the ad's mean similarity to the two neighbours and <code>sim</code> is the similarity of the two neighbours themselves. <code>paper.py</code> uses <code>LINEAR_WEIGHT</code>, which scores a slot as <code>sim − inject_flow</code>; the alternative <code>LOG_WEIGHT</code> uses <code>(1 − inject_flow/sim) · log(1 + 2·sim)</code>. The lowest score wins. On CA_Prod, retrieval is limited to that query's candidate products instead of the full ad library.</figcaption>
+  </figure>
+
+  <section>
+    <h2>Run modes</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>Stages</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td><code>python paper.py</code></td><td>1 → 2 → 3</td><td>Calls <code>GemBench.run()</code>: generate, evaluate and report in one process.</td></tr>
+          <tr><td><code>--mode generate</code></td><td>1</td><td>Writes <code>results.json</code> under <code>OUTPUT_BASE/generate_results/</code>. No judge calls.</td></tr>
+          <tr><td><code>--mode evaluate --results-path R</code></td><td>2 → 3</td><td>Loads R. MT-Human and LM-Market rows become <code>gen_results</code>; CA_Prod rows become <code>select_results</code>.</td></tr>
+          <tr><td><code>--identifiability-only</code></td><td>2 (partial)</td><td>Sets <code>evaluate_matrix</code> to identifiability alone, so the quantitative metrics and the other six judge metrics are skipped. <code>SelectEvaluator</code> still runs whenever CA_Prod results are present.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>
